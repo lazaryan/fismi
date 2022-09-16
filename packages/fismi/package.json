@@ -1,0 +1,27 @@
+{
+  "name": "fimsi",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Servender/fimsi.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Servender/fimsi/issues"
+  },
+  "homepage": "https://github.com/Servender/fimsi#readme",
+  "devDependencies": {
+    "typescript": "^4.6.4",
+    "vite": "^3.1.0"
+  }
+}
