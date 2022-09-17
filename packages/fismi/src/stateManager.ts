@@ -7,16 +7,17 @@ import type {
 import type { ControllerToken } from './controller';
 
 export type SubscriptionTokenAction<T> = ((value: Omit<TokenState<T>, 'isActive' | 'isLoad'>) => void);
-export type SubscriptionControllerAction<T> = ((value: TokenState<T>) => void);
+export type SubscriptionControllerAction<T> = ((value: ControllerState<T>['value']) => void);
 
 type ControllerState<T> = {
   value: T;
+  defaultValue?: T;
+  isLoad: boolean;
   subscriptions: Set<any>;
 };
 
 type TokenState<T> = {
   isActive: boolean;
-  isLoad: boolean;
   subscribes: Set<SubscriptionTokenAction<T>>;
   controllerState: Map<symbol, ControllerState<T>>;
 };
@@ -40,6 +41,11 @@ export interface StateManagerI {
   subscriptionToken<T>(token: FeatureToken<T>, callback: SubscriptionTokenAction<T>): void;
   unsubscriptionToken<T>(token: FeatureToken<T>, callback: SubscriptionTokenAction<T>): void;
 
+  subscribeControllerState<T>(token: FeatureToken<T>, controllerToken: ControllerToken, callback: SubscriptionControllerAction<T>): void;
+  unsubscribeControllerState<T>(token: FeatureToken<T>, controllerToken: ControllerToken, callback: SubscriptionControllerAction<T>): void;
+
+  updateActiveToken<T>(token: FeatureToken<T>, status: boolean): void;
+
   clear(): void;
 }
 
@@ -52,7 +58,6 @@ class StateManager implements StateManagerI {
     // TODO isActive
     this.state.set(token.symbol, {
       isActive: false,
-      isLoad: !token.isAsync,
       subscribes: new Set(),
       controllerState: new Map(),
     })
@@ -62,7 +67,7 @@ class StateManager implements StateManagerI {
     this.state.delete(token.symbol);
   }
 
-  bindControllerValue<T>(token: FeatureToken<T>, controllerToken: ControllerToken, value: T): void {
+  bindControllerValue<T>(token: FeatureToken<T>, controllerToken: ControllerToken, value: T, defaultValue?: T): void {
     if (!this.state.has(token.symbol)) {
       this.addToken(token);
     }
@@ -71,6 +76,8 @@ class StateManager implements StateManagerI {
       controllerToken.symbol,
       {
         value,
+        defaultValue,
+        isLoad: !token.isAsync,
         subscriptions: new Set(),
       },
     );
@@ -86,6 +93,22 @@ class StateManager implements StateManagerI {
     if(!this.state.has(token.symbol)) return;
 
     this.state.get(token.symbol)?.subscribes.delete(callback);
+  }
+
+  subscribeControllerState<T>(token: FeatureToken<T>, controllerToken: ControllerToken, callback: SubscriptionControllerAction<T>): void {
+    if(!this.state.has(token.symbol) || !this.state.get(token.symbol)?.controllerState.has(controllerToken.symbol)) return;
+
+    this.state.get(token.symbol)?.controllerState.get(controllerToken.symbol)?.subscriptions.add(callback);
+  }
+
+  unsubscribeControllerState<T>(token: FeatureToken<T>, controllerToken: ControllerToken, callback: SubscriptionControllerAction<T>): void {
+    if(!this.state.has(token.symbol) || !this.state.get(token.symbol)?.controllerState.has(controllerToken.symbol)) return;
+
+    this.state.get(token.symbol)?.controllerState.get(controllerToken.symbol)?.subscriptions.delete(callback);
+  }
+
+  updateActiveToken<T>(token: FeatureToken<T>, status: boolean): void {
+    
   }
 
   clear(): void {

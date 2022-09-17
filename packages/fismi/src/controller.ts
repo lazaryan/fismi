@@ -5,10 +5,8 @@ import type {
 } from './token';
 
 import type {
-  SubscribeAction,
-} from './register';
-import { register } from './register';
-
+  SubscriptionControllerAction,
+} from './stateManager';
 import { stateManager } from './stateManager';
 
 export type ControllerToken = {
@@ -22,10 +20,10 @@ export function controllerToken(description?: string): ControllerToken {
 }
 
 export interface Controller {
-  bindValue<T>(token: FeatureToken<T>, value: T): void;
+  bindValue<T>(token: FeatureToken<T>, value: T, defaultValue?: T): void;
 
-  subscribe<T>(token: FeatureToken<T>, callback: SubscribeAction): void;
-  unsubscribe<T>(token: FeatureToken<T>, callback: SubscribeAction): void;
+  subscribe<T>(token: FeatureToken<T>, callback: SubscriptionControllerAction<T>): void;
+  unsubscribe<T>(token: FeatureToken<T>, callback: SubscriptionControllerAction<T>): void;
 }
 
 export class FeatureController implements Controller {
@@ -35,15 +33,15 @@ export class FeatureController implements Controller {
     this.controllerToken = token;
   }
 
-  bindValue<T>(token: FeatureToken<T>, value: T): void {
-    stateManager.bindControllerValue(token, this.controllerToken, value);
+  bindValue<T>(token: FeatureToken<T>, value: T, defaultValue?: T): void {
+    stateManager.bindControllerValue(token, this.controllerToken, value, defaultValue);
   }
 
-  subscribe<T>(token: FeatureToken<T>, callback: SubscribeAction): void {
-
+  subscribe<T>(token: FeatureToken<T>, callback: SubscriptionControllerAction<T>): void {
+    stateManager.subscribeControllerState(token, this.controllerToken, callback);
   }
 
-  unsubscribe<T>(token: FeatureToken<T>, callback: SubscribeAction): void {
-
+  unsubscribe<T>(token: FeatureToken<T>, callback: SubscriptionControllerAction<T>): void {
+    stateManager.unsubscribeControllerState(token, this.controllerToken, callback);
   }
 }

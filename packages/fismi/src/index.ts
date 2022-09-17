@@ -5,12 +5,11 @@ export type {
 } from './token';
 export {
   featureToken,
-  activateFeature,
-  disactivateFeature,
+  updateFeatureStatus,
   loadFeature,
   removeFeature,
-  subscribeChangeFeatureToken,
-  unsubscribeChangeFeatureToken,
+  subscribeChangeFeature,
+  unsubscribeChangeFeature,
 } from './token';
 
 export type {
