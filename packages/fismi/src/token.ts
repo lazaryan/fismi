@@ -45,6 +45,10 @@ export function featureToken<T>(...args: FeatureTokenArgs): FeatureToken<T> {
   };
 
   stateManager.addToken(token);
+
+  if (isActive) {
+    stateManager.updateActiveToken(token, true);
+  }
   
   return token;
 }
@@ -53,7 +57,7 @@ export function loadFeature<T>(_token: FeatureToken<T>): void {
   // TODO
 }
 
-export function updateFeatureStatus<T>(token: FeatureToken<T>, status: boolean): void {
+export function updateFeatureStatus<T>(_token: FeatureToken<T>, _status: boolean): void {
   // TODO
 }
 

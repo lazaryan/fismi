@@ -1,12 +1,10 @@
 import type {
-  FeatureTokenSync,
-  FeatureTokenAsync,
   FeatureToken,
 } from './token';
 
 import type { ControllerToken } from './controller';
 
-export type SubscriptionTokenAction<T> = ((value: Omit<TokenState<T>, 'isActive' | 'isLoad'>) => void);
+export type SubscriptionTokenAction<T> = ((value: Pick<TokenState<T>, 'isActive'>) => void);
 export type SubscriptionControllerAction<T> = ((value: ControllerState<T>['value']) => void);
 
 type ControllerState<T> = {
@@ -108,7 +106,26 @@ class StateManager implements StateManagerI {
   }
 
   updateActiveToken<T>(token: FeatureToken<T>, status: boolean): void {
-    
+    if(!this.state.has(token.symbol)) return;
+
+    const oldState = this.state.get(token.symbol) as TokenState<T>;
+
+    if (!status) {
+      const newState: TokenState<T> = {
+        ...oldState,
+        isActive: false,
+      };
+
+      this.state.set(token.symbol, newState);
+
+      oldState.subscribes.forEach((callback) => {
+        callback({
+          isActive: oldState.isActive,
+        })
+      })
+
+      return;
+    }
   }
 
   clear(): void {

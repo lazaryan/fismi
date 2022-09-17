@@ -1,6 +1,4 @@
 import type {
-  FeatureTokenSync,
-  FeatureTokenAsync,
   FeatureToken,
 } from './token';
 
