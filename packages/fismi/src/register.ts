@@ -8,7 +8,7 @@ type Subsciptions = Set<SubscribeAction>;
 
 type TokenSubsciptions = Map<symbol, Subsciptions>;
 
-interface RegisterI {
+interface RegisterFeatureStateChangesI {
   addToken<T>(token: FeatureToken<T>): void;
   removeToken<T>(token: FeatureToken<T>): void;
 
@@ -18,7 +18,7 @@ interface RegisterI {
   clear(): void;
 }
 
-class Register implements RegisterI {
+class RegisterFeatureStateChanges implements RegisterFeatureStateChangesI {
   private tokenSubsriptions: TokenSubsciptions = new Map();
 
   addToken<T>(token: FeatureToken<T>): void {
@@ -46,4 +46,4 @@ class Register implements RegisterI {
   }
 }
 
-export const register = new Register();
+export const register = new RegisterFeatureStateChanges();

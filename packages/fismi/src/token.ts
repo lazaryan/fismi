@@ -1,5 +1,10 @@
 import { register } from './register';
 
+import type {
+  SubscriptionTokenAction,
+} from './stateManager';
+import { stateManager } from './stateManager';
+
 export type FeatureTokenSync<T> = {
   symbol: symbol;
   type?: T; // Anchor for Typescript type inference.
@@ -8,7 +13,7 @@ export type FeatureTokenSync<T> = {
 
 export type FeatureTokenAsync<T> = {
   symbol: symbol;
-  type?: T; // Anchor for Typescript type inference.
+  type?: Promise<T>; // Anchor for Typescript type inference.
   isAsync: true;
 };
 
@@ -40,6 +45,7 @@ export function featureToken<T>(...args: FeatureTokenArgs): FeatureToken<T> {
   };
 
   register.addToken(token);
+  stateManager.addToken(token);
   
   return token;
 }
@@ -58,4 +64,12 @@ export function loadFeature<T>(_token: FeatureToken<T>): void {
 
 export function removeFeature<T>(_token: FeatureToken<T>): void {
   // TODO
+}
+
+export function subscribeChangeFeatureToken<T>(token: FeatureToken<T>, callback: SubscriptionTokenAction<T>): void {
+  stateManager.subscriptionToken(token, callback);
+}
+
+export function unsubscribeChangeFeatureToken<T>(token: FeatureToken<T>, callback: SubscriptionTokenAction<T>): void {
+  stateManager.unsubscriptionToken(token, callback);
 }
