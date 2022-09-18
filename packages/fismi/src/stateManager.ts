@@ -62,13 +62,20 @@ type TokenState<T> = {
   controllerState: Map<symbol, ControllerState<T>>;
 };
 
-type StateMap = Map<symbol, TokenState<any>>;
+export type SubscribeCallback = (value: StateMap) => void;
+
+export type StateMap = Map<symbol, TokenState<any>>;
+
+export type GlobalSubscribes = Set<SubscribeCallback>;
 
 export interface StateManagerI {
   addToken<T>(token: FeatureToken<T>): void;
   removeToken<T>(token: FeatureToken<T>): void;
 
   bindControllerValue<T>(token: FeatureToken<T>, controllerToken: ControllerToken, value: T): void;
+
+  subscribe(callback: SubscribeCallback): void;
+  unsubscribe(callback: SubscribeCallback): void;
 
   subscriptionToken<T>(token: FeatureToken<T>, callback: SubscriptionTokenAction<T>): void;
   unsubscriptionToken<T>(token: FeatureToken<T>, callback: SubscriptionTokenAction<T>): void;
@@ -89,15 +96,24 @@ export interface StateManagerI {
 
 class StateManager implements StateManagerI {
   private state: StateMap = new Map();
+  private subscribes: GlobalSubscribes = new Set();
+
+  private updateTokenState<T>(token: FeatureToken<T>, newState: TokenState<T>): void {
+    this.state.set(token.symbol, newState);
+
+    if (this.subscribes.size) {
+      this.subscribes.forEach((callback) => callback(this.state));
+    }
+  }
 
   addToken<T>(token: FeatureToken<T>): void {
     if (this.state.has(token.symbol)) return;
 
-    this.state.set(token.symbol, {
+    this.updateTokenState(token, {
       isActive: false,
       subscribes: new Set(),
       controllerState: new Map(),
-    })
+    });
   }
 
   removeToken<T>(token: FeatureToken<T>): void {
@@ -125,6 +141,14 @@ class StateManager implements StateManagerI {
         token: controllerToken,
       },
     );
+  }
+
+  subscribe(callback: SubscribeCallback): void {
+    this.subscribes.add(callback);
+  }
+
+  unsubscribe(callback: SubscribeCallback): void {
+    this.subscribes.delete(callback);
   }
 
   subscriptionToken<T>(token: FeatureToken<T>, callback: SubscriptionTokenAction<T>): void {
@@ -253,7 +277,7 @@ class StateManager implements StateManagerI {
       isActive: status,
     };
 
-    this.state.set(token.symbol, newState);
+    this.updateTokenState(token, newState);
 
     oldState.subscribes.forEach((callback) => callback({ isActive: status }));
   
@@ -275,12 +299,21 @@ class StateManager implements StateManagerI {
   }
 
   clear(): void {
+    this.subscribes.clear();
     this.state.clear();
   }
 }
 
 export const stateManager = new StateManager();
 
-export function clearStateManager() {
+export function clearStateManager(): void {
   stateManager.clear();
+}
+
+export function subscribeStateUpdate(callback: SubscribeCallback): void {
+  stateManager.subscribe(callback);
+}
+
+export function unsubscribeStateUpdate(callback: SubscribeCallback): void {
+  stateManager.unsubscribe(callback);
 }

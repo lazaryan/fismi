@@ -21,4 +21,8 @@ export {
   FeatureController,
 } from './controller';
 
-export { clearStateManager } from './stateManager';
+export {
+  clearStateManager,
+  subscribeStateUpdate,
+  unsubscribeStateUpdate,
+} from './stateManager';
