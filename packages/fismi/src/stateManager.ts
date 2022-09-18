@@ -93,7 +93,6 @@ class StateManager implements StateManagerI {
   addToken<T>(token: FeatureToken<T>): void {
     if (this.state.has(token.symbol)) return;
 
-    // TODO isActive
     this.state.set(token.symbol, {
       isActive: false,
       subscribes: new Set(),
