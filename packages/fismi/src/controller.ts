@@ -16,6 +16,8 @@ export function controllerToken(description?: string): ControllerToken {
 export interface Controller {
   bindValue<T>(token: FeatureToken<T>, value: T, defaultValue?: T): void;
 
+  get<T>(token: FeatureToken<T>): T | undefined;
+
   subscribe<T>(token: FeatureToken<T>, callback: SubscriptionControllerAction<T>): void;
   unsubscribe<T>(token: FeatureToken<T>, callback: SubscriptionControllerAction<T>): void;
   unsubscribeAll<T>(token: FeatureToken<T>): void;
@@ -33,6 +35,10 @@ export class FeatureController implements Controller {
 
   bindValue<T>(token: FeatureToken<T>, value: T, defaultValue?: T): void {
     stateManager.bindControllerValue(token, this.controllerToken, value, defaultValue);
+  }
+
+  get<T>(token: FeatureToken<T>): T | undefined {
+    return stateManager.getControllerValue(token, this.controllerToken);
   }
 
   subscribe<T>(token: FeatureToken<T>, callback: SubscriptionControllerAction<T>): void {

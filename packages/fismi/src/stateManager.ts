@@ -64,14 +64,6 @@ type TokenState<T> = {
 
 type StateMap = Map<symbol, TokenState<any>>;
 
-// save token values
-/**
- * [token]: [
- *  isActive: boolean,
- *  [feature_1], // controller_1_token
- *  [feature_2], // controller_2_token
- * ]
- */
 export interface StateManagerI {
   addToken<T>(token: FeatureToken<T>): void;
   removeToken<T>(token: FeatureToken<T>): void;
@@ -84,6 +76,8 @@ export interface StateManagerI {
   subscribeControllerState<T>(token: FeatureToken<T>, controllerToken: ControllerToken, callback: SubscriptionControllerAction<T>): void;
   unsubscribeControllerState<T>(token: FeatureToken<T>, controllerToken: ControllerToken, callback: SubscriptionControllerAction<T>): void;
   unsubscribeAllControllerState<T>(token: FeatureToken<T>, controllerToken: ControllerToken): void;
+
+  getControllerValue<T>(token: FeatureToken<T>, controllerToken: ControllerToken): T | undefined;
 
   loadControllerValue<T>(token: FeatureToken<T>, controllerToken: ControllerToken): void;
   loadControllersValue<T>(token: FeatureToken<T>): void;
@@ -162,6 +156,24 @@ class StateManager implements StateManagerI {
     if(!this.state.has(token.symbol) || !this.state.get(token.symbol)?.controllerState.has(controllerToken.symbol)) return;
 
     this.state.get(token.symbol)?.controllerState.get(controllerToken.symbol)?.subscriptions.clear();
+  }
+
+  getControllerValue<T>(token: FeatureToken<T>, controllerToken: ControllerToken): T | undefined {
+    const tokenStateNow = this.state.get(token.symbol);
+    if (!tokenStateNow) return undefined;
+
+    const controllerNow = tokenStateNow.controllerState.get(controllerToken.symbol);
+    if (!controllerNow) return undefined;
+
+    if (!controllerNow.isAsync) {
+      return tokenStateNow.isActive ? controllerNow.defaultValue : controllerNow.value;
+    }
+
+    if (controllerNow.processStatus === 'process' || controllerNow.processStatus === 'fail' || controllerNow.processStatus === 'init') {
+      return controllerNow.defaultValue;
+    }
+
+    return controllerNow.value;
   }
 
   loadControllerValue<T>(token: FeatureToken<T>, controllerToken: ControllerToken): void {
