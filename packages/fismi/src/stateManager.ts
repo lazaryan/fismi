@@ -255,26 +255,10 @@ class StateManager implements StateManagerI {
 
     this.state.set(token.symbol, newState);
 
-    oldState.subscribes.forEach((callback) => {
-      callback({
-        isActive: status,
-      })
-    });
+    oldState.subscribes.forEach((callback) => callback({ isActive: status }));
   
     oldState.controllerState.forEach((controllerState) => {
-      if(!controllerState.isAsync) {
-        controllerState.subscriptions.forEach((callback) => {
-          const returnValue: ReturnSubscriptionControllerData<T> = !status
-            ? { isActive: false, value: controllerState.defaultValue }
-            : { isActive: true, value: controllerState.value };
-
-            callback(returnValue);
-        });
-
-        return;
-      }
-  
-      if (controllerState.processStatus === 'done') {
+      if(!controllerState.isAsync || controllerState.processStatus === 'done') {
         controllerState.subscriptions.forEach((callback) => {
           const returnValue: ReturnSubscriptionControllerData<T> = !status
             ? { isActive: false, value: controllerState.defaultValue }
