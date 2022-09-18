@@ -13,6 +13,10 @@ export {
 } from './token';
 
 export type {
+  ControllerToken,
   Controller,
 } from './controller';
-export { FeatureController } from './controller';
+export {
+  controllerToken,
+  FeatureController,
+} from './controller';

@@ -1,10 +1,6 @@
-import type {
-  FeatureToken,
-} from './token';
+import type { FeatureToken } from './token';
 
-import type {
-  SubscriptionControllerAction,
-} from './stateManager';
+import type { SubscriptionControllerAction } from './stateManager';
 import { stateManager } from './stateManager';
 
 export type ControllerToken = {
@@ -31,8 +27,8 @@ export class FeatureController implements Controller {
   private controllerToken: ControllerToken;
   private subscribesToken: Set<FeatureToken<any>> = new Set();
  
-  constructor(token: ControllerToken) {
-    this.controllerToken = token;
+  constructor(token?: ControllerToken) {
+    this.controllerToken = token || controllerToken();
   }
 
   bindValue<T>(token: FeatureToken<T>, value: T, defaultValue?: T): void {

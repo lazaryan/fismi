@@ -1,6 +1,4 @@
-import type {
-  SubscriptionTokenAction,
-} from './stateManager';
+import type { SubscriptionTokenAction } from './stateManager';
 import { stateManager } from './stateManager';
 
 export type FeatureTokenSync<T> = {
@@ -53,8 +51,8 @@ export function featureToken<T>(...args: FeatureTokenArgs): FeatureToken<T> {
   return token;
 }
 
-export function loadFeature<T>(_token: FeatureToken<T>): void {
-  // TODO
+export function loadFeature<T>(token: FeatureToken<T>): void {
+  stateManager.loadControllersValue(token);
 }
 
 export function updateFeatureStatus<T>(token: FeatureToken<T>, status: boolean): void {

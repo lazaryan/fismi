@@ -1,6 +1,4 @@
-import type {
-  FeatureToken,
-} from './token';
+import type { FeatureToken } from './token';
 
 import type { ControllerToken } from './controller';
 
@@ -24,36 +22,36 @@ export type SubscriptionControllerAction<T> = ((value: ReturnSubscriptionControl
 export type ControllerLoadStatus = 'init' | 'process' | 'fail' | 'done';
 export type AsyncControllerValue<T> = () => T | Promise<T>;
 
-type ControllerStateSync<T> = {
-  value: T;
+type BaseControllerState<T> = {
   defaultValue?: T;
+  processStatus: ControllerLoadStatus;
+  subscriptions: Set<SubscriptionControllerAction<T>>;
+  isAsync: boolean;
+  token: ControllerToken;
+};
+
+type ControllerStateSync<T> = BaseControllerState<T> & {
+  value: T;
   isAsync: false;
   processStatus: 'init';
-  subscriptions: Set<SubscriptionControllerAction<T>>;
 }
 
-type ControllerStateAsyncIsFail<T> = {
+type ControllerStateAsyncIsFail<T> = BaseControllerState<T> & {
   value?: any;
-  defaultValue?: T;
   isAsync: true;
   processStatus: 'fail';
-  subscriptions: Set<SubscriptionControllerAction<T>>;
 }
 
-type ControllerStateAsyncIsLoad<T> = {
+type ControllerStateAsyncIsLoad<T> = BaseControllerState<T> & {
   value: T;
-  defaultValue?: T;
   isAsync: true;
   processStatus: 'done';
-  subscriptions: Set<SubscriptionControllerAction<T>>;
 }
 
-type ControllerStateAsync<T> = {
+type ControllerStateAsync<T> = BaseControllerState<T> & {
   value: AsyncControllerValue<T>;
-  defaultValue?: T;
   isAsync: true;
   processStatus: 'init' | 'process';
-  subscriptions: Set<SubscriptionControllerAction<T>>;
 }
 
 type ControllerState<T> = ControllerStateSync<T> | ControllerStateAsyncIsLoad<T> | ControllerStateAsyncIsFail<T> | ControllerStateAsync<T>;
@@ -86,6 +84,9 @@ export interface StateManagerI {
   subscribeControllerState<T>(token: FeatureToken<T>, controllerToken: ControllerToken, callback: SubscriptionControllerAction<T>): void;
   unsubscribeControllerState<T>(token: FeatureToken<T>, controllerToken: ControllerToken, callback: SubscriptionControllerAction<T>): void;
   unsubscribeAllControllerState<T>(token: FeatureToken<T>, controllerToken: ControllerToken): void;
+
+  loadControllerValue<T>(token: FeatureToken<T>, controllerToken: ControllerToken): void;
+  loadControllersValue<T>(token: FeatureToken<T>): void;
 
   updateActiveToken<T>(token: FeatureToken<T>, status: boolean): void;
 
@@ -128,6 +129,7 @@ class StateManager implements StateManagerI {
         isAsync: token.isAsync ?? false,
         processStatus: 'init',
         subscriptions: new Set(),
+        token: controllerToken,
       },
     );
   }
@@ -162,6 +164,74 @@ class StateManager implements StateManagerI {
     this.state.get(token.symbol)?.controllerState.get(controllerToken.symbol)?.subscriptions.clear();
   }
 
+  loadControllerValue<T>(token: FeatureToken<T>, controllerToken: ControllerToken): void {
+    const tokenStateNow = this.state.get(token.symbol);
+    if (!tokenStateNow) return;
+
+    const controllerNow = tokenStateNow.controllerState.get(controllerToken.symbol);
+    if (!controllerNow) return;
+
+    if(controllerNow.isAsync === false || controllerNow.processStatus !== 'init') return;
+
+    const value = (controllerNow as ControllerStateAsync<T>).value();
+
+    if (!isPromise<value) {
+      tokenStateNow.controllerState.set(controllerToken.symbol, {
+        ...controllerNow,
+        processStatus: 'done',
+        value,
+      });
+
+      controllerNow.subscriptions.forEach((callback) => {
+        const returnValue: ReturnSubscriptionControllerData<T> = !tokenStateNow.isActive
+            ? { isActive: false, value: controllerNow.defaultValue }
+            : { isActive: true, value: value as T };
+
+        callback(returnValue);
+      });
+    
+      return;
+    }
+
+    (value as Promise<T>)
+      .then((response) => {
+        tokenStateNow.controllerState.set(controllerToken.symbol, {
+          ...controllerNow,
+          processStatus: 'done',
+          value: response,
+        });
+
+        const activeStatus = this.state.get(token.symbol)?.isActive ?? false;
+
+        controllerNow.subscriptions.forEach((callback) => {
+          callback({ isActive: activeStatus, value: !activeStatus ? undefined : response });
+        });
+      })
+      .catch((error) => {
+        console.error(error);
+
+        tokenStateNow.controllerState.set(controllerToken.symbol, {
+          ...controllerNow,
+          processStatus: 'fail',
+          value: undefined,
+        });
+
+        controllerNow.subscriptions.forEach((callback) => {
+          callback({ isActive: tokenStateNow.isActive, value: undefined });
+        });
+      })
+  }
+
+  loadControllersValue<T>(token: FeatureToken<T>): void {
+    const tokenStateNow = this.state.get(token.symbol);
+
+    if (!tokenStateNow) return;
+
+    tokenStateNow.controllerState.forEach((controller) => {
+      this.loadControllerValue(token, controller.token);
+    })
+  }
+
   updateActiveToken<T>(token: FeatureToken<T>, status: boolean): void {
     if(!this.state.has(token.symbol)) return;
 
@@ -180,7 +250,7 @@ class StateManager implements StateManagerI {
       })
     });
   
-    oldState.controllerState.forEach((controllerState, tokenSymbol) => {
+    oldState.controllerState.forEach((controllerState) => {
       if(!controllerState.isAsync) {
         controllerState.subscriptions.forEach((callback) => {
           const returnValue: ReturnSubscriptionControllerData<T> = !status
@@ -205,59 +275,7 @@ class StateManager implements StateManagerI {
         return;
       }
 
-      if (controllerState.processStatus === 'init') {
-        if (!status) {
-          controllerState.subscriptions.forEach((callback) => {
-            callback({ isActive: false, value: controllerState.defaultValue });
-          });
-        } else {
-          const value = controllerState.value();
-
-          const oldControllerState = oldState.controllerState.get(tokenSymbol) as Exclude<ReturnType<typeof oldState.controllerState.get>, undefined>;
-
-          if (isPromise(value)) {
-            oldControllerState.subscriptions.forEach((callback) => {
-              callback({ isActive: true, value: oldControllerState.defaultValue });
-            });
-
-            (value as Promise<T>)
-              .then((response) => {
-                oldState.controllerState.set(tokenSymbol, {
-                  ...oldControllerState,
-                  processStatus: 'done',
-                  value: response,
-                } as ControllerStateAsyncIsLoad<any>); // TODO
-
-                const activeStatus = this.state.get(token.symbol)?.isActive ?? false;
-
-                oldControllerState.subscriptions.forEach((callback) => {
-                  callback({ isActive: activeStatus, value: !activeStatus ? undefined : response });
-                });
-              })
-              .catch(() => {
-                oldState.controllerState.set(tokenSymbol, {
-                  ...oldControllerState,
-                  processStatus: 'fail',
-                  value: undefined,
-                } as ControllerStateAsyncIsFail<any>); // TODO
-
-                oldControllerState.subscriptions.forEach((callback) => {
-                  callback({ isActive: true, value: undefined });
-                });
-              })
-          } else {
-            oldState.controllerState.set(tokenSymbol, {
-              ...oldControllerState,
-              processStatus: 'done',
-              value,
-            } as ControllerStateAsyncIsLoad<any>); // TODO
-
-            oldControllerState.subscriptions.forEach((callback) => {
-              callback({ isActive: true, value: value as any}); // TODO
-            });
-          }
-        }
-      }
+      this.loadControllerValue(token, controllerState.token);
     })
   }
 
