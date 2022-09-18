@@ -22,10 +22,14 @@ export interface Controller {
 
   subscribe<T>(token: FeatureToken<T>, callback: SubscriptionControllerAction<T>): void;
   unsubscribe<T>(token: FeatureToken<T>, callback: SubscriptionControllerAction<T>): void;
+  unsubscribeAll<T>(token: FeatureToken<T>): void;
+
+  clear(): void;
 }
 
 export class FeatureController implements Controller {
   private controllerToken: ControllerToken;
+  private subscribesToken: Set<FeatureToken<any>> = new Set();
  
   constructor(token: ControllerToken) {
     this.controllerToken = token;
@@ -36,10 +40,21 @@ export class FeatureController implements Controller {
   }
 
   subscribe<T>(token: FeatureToken<T>, callback: SubscriptionControllerAction<T>): void {
+    this.subscribesToken.add(token);
     stateManager.subscribeControllerState(token, this.controllerToken, callback);
   }
 
   unsubscribe<T>(token: FeatureToken<T>, callback: SubscriptionControllerAction<T>): void {
+    this.subscribesToken.delete(token);
     stateManager.unsubscribeControllerState(token, this.controllerToken, callback);
+  }
+
+  unsubscribeAll<T>(token: FeatureToken<T>): void {
+    stateManager.unsubscribeAllControllerState(token, this.controllerToken);
+  }
+
+  clear(): void {
+    this.subscribesToken.forEach((token) => this.unsubscribeAll(token));
+    this.subscribesToken.clear();
   }
 }

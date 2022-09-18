@@ -85,6 +85,7 @@ export interface StateManagerI {
 
   subscribeControllerState<T>(token: FeatureToken<T>, controllerToken: ControllerToken, callback: SubscriptionControllerAction<T>): void;
   unsubscribeControllerState<T>(token: FeatureToken<T>, controllerToken: ControllerToken, callback: SubscriptionControllerAction<T>): void;
+  unsubscribeAllControllerState<T>(token: FeatureToken<T>, controllerToken: ControllerToken): void;
 
   updateActiveToken<T>(token: FeatureToken<T>, status: boolean): void;
 
@@ -153,6 +154,12 @@ class StateManager implements StateManagerI {
     if(!this.state.has(token.symbol) || !this.state.get(token.symbol)?.controllerState.has(controllerToken.symbol)) return;
 
     this.state.get(token.symbol)?.controllerState.get(controllerToken.symbol)?.subscriptions.delete(callback);
+  }
+
+  unsubscribeAllControllerState<T>(token: FeatureToken<T>, controllerToken: ControllerToken): void {
+    if(!this.state.has(token.symbol) || !this.state.get(token.symbol)?.controllerState.has(controllerToken.symbol)) return;
+
+    this.state.get(token.symbol)?.controllerState.get(controllerToken.symbol)?.subscriptions.clear();
   }
 
   updateActiveToken<T>(token: FeatureToken<T>, status: boolean): void {
