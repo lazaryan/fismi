@@ -20,3 +20,5 @@ export {
   controllerToken,
   FeatureController,
 } from './controller';
+
+export { clearStateManager } from './stateManager';

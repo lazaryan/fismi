@@ -297,3 +297,7 @@ class StateManager implements StateManagerI {
 }
 
 export const stateManager = new StateManager();
+
+export function clearStateManager() {
+  stateManager.clear();
+}
