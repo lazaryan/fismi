@@ -57,8 +57,8 @@ export function loadFeature<T>(_token: FeatureToken<T>): void {
   // TODO
 }
 
-export function updateFeatureStatus<T>(_token: FeatureToken<T>, _status: boolean): void {
-  // TODO
+export function updateFeatureStatus<T>(token: FeatureToken<T>, status: boolean): void {
+  stateManager.updateActiveToken(token, status);
 }
 
 export function removeFeature<T>(token: FeatureToken<T>): void {
