@@ -1,16 +1,10 @@
 export type {
+  BaseFeatureToken,
   FeatureTokenSync,
   FeatureTokenAsync,
   FeatureToken,
 } from './token';
-export {
-  featureToken,
-  updateFeatureStatus,
-  loadFeature,
-  removeFeature,
-  subscribeChangeFeature,
-  unsubscribeChangeFeature,
-} from './token';
+export { featureToken } from './token';
 
 export type {
   ControllerToken,

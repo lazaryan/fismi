@@ -1,4 +1,4 @@
-import type { FeatureToken } from './token';
+import type { BaseFeatureToken } from './token';
 
 import type { ControllerToken } from './controller';
 
@@ -69,27 +69,27 @@ export type StateMap = Map<symbol, TokenState<any>>;
 export type GlobalSubscribes = Set<SubscribeCallback>;
 
 export interface StateManagerI {
-  addToken<T>(token: FeatureToken<T>): void;
-  removeToken<T>(token: FeatureToken<T>): void;
+  addToken<T>(token: BaseFeatureToken<T>): void;
+  removeToken<T>(token: BaseFeatureToken<T>): void;
 
-  bindControllerValue<T>(token: FeatureToken<T>, controllerToken: ControllerToken, value: T): void;
+  bindControllerValue<T>(token: BaseFeatureToken<T>, controllerToken: ControllerToken, value: T): void;
 
   subscribe(callback: SubscribeCallback): void;
   unsubscribe(callback: SubscribeCallback): void;
 
-  subscriptionToken<T>(token: FeatureToken<T>, callback: SubscriptionTokenAction<T>): void;
-  unsubscriptionToken<T>(token: FeatureToken<T>, callback: SubscriptionTokenAction<T>): void;
+  subscriptionToken<T>(token: BaseFeatureToken<T>, callback: SubscriptionTokenAction<T>): void;
+  unsubscriptionToken<T>(token: BaseFeatureToken<T>, callback: SubscriptionTokenAction<T>): void;
 
-  subscribeControllerState<T>(token: FeatureToken<T>, controllerToken: ControllerToken, callback: SubscriptionControllerAction<T>): void;
-  unsubscribeControllerState<T>(token: FeatureToken<T>, controllerToken: ControllerToken, callback: SubscriptionControllerAction<T>): void;
-  unsubscribeAllControllerState<T>(token: FeatureToken<T>, controllerToken: ControllerToken): void;
+  subscribeControllerState<T>(token: BaseFeatureToken<T>, controllerToken: ControllerToken, callback: SubscriptionControllerAction<T>): void;
+  unsubscribeControllerState<T>(token: BaseFeatureToken<T>, controllerToken: ControllerToken, callback: SubscriptionControllerAction<T>): void;
+  unsubscribeAllControllerState<T>(token: BaseFeatureToken<T>, controllerToken: ControllerToken): void;
 
-  getControllerValue<T>(token: FeatureToken<T>, controllerToken: ControllerToken): T | undefined;
+  getControllerValue<T>(token: BaseFeatureToken<T>, controllerToken: ControllerToken): T | undefined;
 
-  loadControllerValue<T>(token: FeatureToken<T>, controllerToken: ControllerToken): void;
-  loadControllersValue<T>(token: FeatureToken<T>): void;
+  loadControllerValue<T>(token: BaseFeatureToken<T>, controllerToken: ControllerToken): void;
+  loadControllersValue<T>(token: BaseFeatureToken<T>): void;
 
-  updateActiveToken<T>(token: FeatureToken<T>, status: boolean): void;
+  updateActiveToken<T>(token: BaseFeatureToken<T>, status: boolean): void;
 
   clear(): void;
 }
@@ -98,7 +98,7 @@ class StateManager implements StateManagerI {
   private state: StateMap = new Map();
   private subscribes: GlobalSubscribes = new Set();
 
-  private updateTokenState<T>(token: FeatureToken<T>, newState: TokenState<T>): void {
+  private updateTokenState<T>(token: BaseFeatureToken<T>, newState: TokenState<T>): void {
     this.state.set(token.symbol, newState);
 
     if (this.subscribes.size) {
@@ -106,7 +106,7 @@ class StateManager implements StateManagerI {
     }
   }
 
-  addToken<T>(token: FeatureToken<T>): void {
+  addToken<T>(token: BaseFeatureToken<T>): void {
     if (this.state.has(token.symbol)) return;
 
     this.updateTokenState(token, {
@@ -116,12 +116,12 @@ class StateManager implements StateManagerI {
     });
   }
 
-  removeToken<T>(token: FeatureToken<T>): void {
+  removeToken<T>(token: BaseFeatureToken<T>): void {
     this.state.delete(token.symbol);
   }
 
   bindControllerValue<T, C extends ControllerState<T>>(
-    token: FeatureToken<T>,
+    token: BaseFeatureToken<T>,
     controllerToken: ControllerToken,
     value: C['value'],
     defaultValue?: T
@@ -151,37 +151,37 @@ class StateManager implements StateManagerI {
     this.subscribes.delete(callback);
   }
 
-  subscriptionToken<T>(token: FeatureToken<T>, callback: SubscriptionTokenAction<T>): void {
+  subscriptionToken<T>(token: BaseFeatureToken<T>, callback: SubscriptionTokenAction<T>): void {
     if(!this.state.has(token.symbol)) return;
 
     this.state.get(token.symbol)?.subscribes.add(callback);
   }
 
-  unsubscriptionToken<T>(token: FeatureToken<T>, callback: SubscriptionTokenAction<T>): void {
+  unsubscriptionToken<T>(token: BaseFeatureToken<T>, callback: SubscriptionTokenAction<T>): void {
     if(!this.state.has(token.symbol)) return;
 
     this.state.get(token.symbol)?.subscribes.delete(callback);
   }
 
-  subscribeControllerState<T>(token: FeatureToken<T>, controllerToken: ControllerToken, callback: SubscriptionControllerAction<T>): void {
+  subscribeControllerState<T>(token: BaseFeatureToken<T>, controllerToken: ControllerToken, callback: SubscriptionControllerAction<T>): void {
     if(!this.state.has(token.symbol) || !this.state.get(token.symbol)?.controllerState.has(controllerToken.symbol)) return;
 
     this.state.get(token.symbol)?.controllerState.get(controllerToken.symbol)?.subscriptions.add(callback);
   }
 
-  unsubscribeControllerState<T>(token: FeatureToken<T>, controllerToken: ControllerToken, callback: SubscriptionControllerAction<T>): void {
+  unsubscribeControllerState<T>(token: BaseFeatureToken<T>, controllerToken: ControllerToken, callback: SubscriptionControllerAction<T>): void {
     if(!this.state.has(token.symbol) || !this.state.get(token.symbol)?.controllerState.has(controllerToken.symbol)) return;
 
     this.state.get(token.symbol)?.controllerState.get(controllerToken.symbol)?.subscriptions.delete(callback);
   }
 
-  unsubscribeAllControllerState<T>(token: FeatureToken<T>, controllerToken: ControllerToken): void {
+  unsubscribeAllControllerState<T>(token: BaseFeatureToken<T>, controllerToken: ControllerToken): void {
     if(!this.state.has(token.symbol) || !this.state.get(token.symbol)?.controllerState.has(controllerToken.symbol)) return;
 
     this.state.get(token.symbol)?.controllerState.get(controllerToken.symbol)?.subscriptions.clear();
   }
 
-  getControllerValue<T>(token: FeatureToken<T>, controllerToken: ControllerToken): T | undefined {
+  getControllerValue<T>(token: BaseFeatureToken<T>, controllerToken: ControllerToken): T | undefined {
     const tokenStateNow = this.state.get(token.symbol);
     if (!tokenStateNow) return undefined;
 
@@ -199,7 +199,7 @@ class StateManager implements StateManagerI {
     return controllerNow.value;
   }
 
-  loadControllerValue<T>(token: FeatureToken<T>, controllerToken: ControllerToken): void {
+  loadControllerValue<T>(token: BaseFeatureToken<T>, controllerToken: ControllerToken): void {
     const tokenStateNow = this.state.get(token.symbol);
     if (!tokenStateNow) return;
 
@@ -257,7 +257,7 @@ class StateManager implements StateManagerI {
       })
   }
 
-  loadControllersValue<T>(token: FeatureToken<T>): void {
+  loadControllersValue<T>(token: BaseFeatureToken<T>): void {
     const tokenStateNow = this.state.get(token.symbol);
 
     if (!tokenStateNow) return;
@@ -267,7 +267,7 @@ class StateManager implements StateManagerI {
     })
   }
 
-  updateActiveToken<T>(token: FeatureToken<T>, status: boolean): void {
+  updateActiveToken<T>(token: BaseFeatureToken<T>, status: boolean): void {
     if(!this.state.has(token.symbol)) return;
 
     const oldState = this.state.get(token.symbol) as TokenState<T>;

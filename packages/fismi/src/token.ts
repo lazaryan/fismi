@@ -1,6 +1,14 @@
 import type { SubscriptionTokenAction } from './stateManager';
 import { stateManager } from './stateManager';
 
+export type TokenActions<T> = {
+  loadFeature(): void;
+  updateFeatureStatus(status: boolean): void;
+  removeFeature(): void;
+  subscribeChangeFeature(callback: SubscriptionTokenAction<T>): void;
+  unsubscribeChangeFeature(callback: SubscriptionTokenAction<T>): void;
+}
+
 export type FeatureTokenSync<T> = {
   symbol: symbol;
   type?: T; // Anchor for Typescript type inference.
@@ -13,7 +21,9 @@ export type FeatureTokenAsync<T> = {
   isAsync: true;
 };
 
-export type FeatureToken<T> = FeatureTokenSync<T> | FeatureTokenAsync<T>;
+export type BaseFeatureToken<T> = FeatureTokenSync<T> | FeatureTokenAsync<T>;
+
+export type FeatureToken<T> = BaseFeatureToken<T> & TokenActions<T>;
 
 type FeatureTokenArgs = [] | [isActive: boolean] | [isActive: boolean, description: string] | [isActive: boolean, isAsync: boolean, description?: string];
 
@@ -29,17 +39,24 @@ export function featureToken<T>(...args: FeatureTokenArgs): FeatureToken<T> {
 
   const symbol = Symbol(description);
 
-  let token: FeatureToken<T>;
-
-  if (isAsync) {
-    token = {
-      symbol,
-      isAsync,
-    }
-  }
-  
-  token = {
+  const token: FeatureToken<T> = {
     symbol,
+    isAsync,
+    loadFeature() {
+      stateManager.loadControllersValue(this);
+    },
+    removeFeature() {
+      stateManager.removeToken(this);
+    },
+    updateFeatureStatus(status: boolean) {
+      stateManager.updateActiveToken(this, status);
+    },
+    subscribeChangeFeature<T>(callback: SubscriptionTokenAction<T>) {
+      stateManager.subscriptionToken(this, callback);
+    },
+    unsubscribeChangeFeature<T>(callback: SubscriptionTokenAction<T>) {
+      stateManager.unsubscriptionToken(this, callback);
+    },
   };
 
   stateManager.addToken(token);
@@ -49,24 +66,4 @@ export function featureToken<T>(...args: FeatureTokenArgs): FeatureToken<T> {
   }
   
   return token;
-}
-
-export function loadFeature<T>(token: FeatureToken<T>): void {
-  stateManager.loadControllersValue(token);
-}
-
-export function updateFeatureStatus<T>(token: FeatureToken<T>, status: boolean): void {
-  stateManager.updateActiveToken(token, status);
-}
-
-export function removeFeature<T>(token: FeatureToken<T>): void {
-  stateManager.removeToken(token);
-}
-
-export function subscribeChangeFeature<T>(token: FeatureToken<T>, callback: SubscriptionTokenAction<T>): void {
-  stateManager.subscriptionToken(token, callback);
-}
-
-export function unsubscribeChangeFeature<T>(token: FeatureToken<T>, callback: SubscriptionTokenAction<T>): void {
-  stateManager.unsubscriptionToken(token, callback);
 }
